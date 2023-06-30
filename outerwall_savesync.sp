@@ -17,7 +17,10 @@ enum ePlayerDataTypes
 	PlayerDataTypes_best_checkpoint_time_two,
 	PlayerDataTypes_best_lapcount_encore,
 	PlayerDataTypes_best_sandpit_time_encore,
-	PlayerDataTypes_achievements,
+	PlayerDataTypes_achievements_month,
+	PlayerDataTypes_achievements_day,
+	PlayerDataTypes_achievements_year_one,
+	PlayerDataTypes_achievements_year_two,
 	PlayerDataTypes_misc_stats,
 	PlayerDataTypes_settings,
 	PlayerDataTypes_MAX
@@ -45,7 +48,10 @@ public void OnPluginStart()
 	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_checkpoint_time_two] = RegClientCookie("ows_best_checkpoint_time_two", "", CookieAccess_Private);
 	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_lapcount_encore] = RegClientCookie("ows_best_lapcount_encore", "", CookieAccess_Private);
 	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_sandpit_time_encore] = RegClientCookie("ows_best_sandpit_time_encore", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements] = RegClientCookie("ows_achievements", "", CookieAccess_Private);
+	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_month] = RegClientCookie("ows_achievements_month", "", CookieAccess_Private);
+	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_day] = RegClientCookie("ows_achievements_day", "", CookieAccess_Private);
+	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_year_one] = RegClientCookie("ows_achievements_year_one", "", CookieAccess_Private);
+	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_year_two] = RegClientCookie("ows_achievements_year_two", "", CookieAccess_Private);
 	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_misc_stats] = RegClientCookie("ows_misc_stats", "", CookieAccess_Private);
 	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_settings] = RegClientCookie("ows_settings", "", CookieAccess_Private);
 
