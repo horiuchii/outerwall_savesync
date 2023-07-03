@@ -7,33 +7,20 @@
 #define OUTERWALL_SAVEPATH "scriptdata/pf_outerwall/"
 #define OUTERWALL_SAVETYPE ".sav"
 
+#define MAX_SAVECOOKIES 128
+#define MAX_COOKIESIZE 100
+#define MAX_SAVESIZE 16384
+
 bool g_bOuterWallSaveSyncEnabled = false;
 
-enum ePlayerDataTypes
-{
-	PlayerDataTypes_map_version = 0,
-	PlayerDataTypes_best_time,
-	PlayerDataTypes_best_checkpoint_time_one,
-	PlayerDataTypes_best_checkpoint_time_two,
-	PlayerDataTypes_best_lapcount_encore,
-	PlayerDataTypes_best_sandpit_time_encore,
-	PlayerDataTypes_achievements_month,
-	PlayerDataTypes_achievements_day,
-	PlayerDataTypes_achievements_year_one,
-	PlayerDataTypes_achievements_year_two,
-	PlayerDataTypes_misc_stats,
-	PlayerDataTypes_settings,
-	PlayerDataTypes_MAX
-};
-
-Handle g_OuterWallSavePlayerDataTypes[PlayerDataTypes_MAX];
+Handle g_OuterWallSaveCookie[MAX_SAVECOOKIES];
 
 public Plugin myinfo =
 {
 	name = "Outer Wall Save Sync",
 	author = "Horiuchi",
 	description = "A companion plugin for pf_outerwall that saves and loads save files from cookies",
-	version = "1.0",
+	version = "1.2",
 };
 
 public void OnPluginStart()
@@ -42,19 +29,13 @@ public void OnPluginStart()
 	GetCurrentMap(mapName, sizeof(mapName));
 	CheckIfPluginShouldBeActive(mapName);
 
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_map_version] = RegClientCookie("ows_map_version", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_time] = RegClientCookie("ows_best_time", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_checkpoint_time_one] = RegClientCookie("ows_best_checkpoint_time_one", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_checkpoint_time_two] = RegClientCookie("ows_best_checkpoint_time_two", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_lapcount_encore] = RegClientCookie("ows_best_lapcount_encore", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_best_sandpit_time_encore] = RegClientCookie("ows_best_sandpit_time_encore", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_month] = RegClientCookie("ows_achievements_month", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_day] = RegClientCookie("ows_achievements_day", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_year_one] = RegClientCookie("ows_achievements_year_one", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_achievements_year_two] = RegClientCookie("ows_achievements_year_two", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_misc_stats] = RegClientCookie("ows_misc_stats", "", CookieAccess_Private);
-	g_OuterWallSavePlayerDataTypes[PlayerDataTypes_settings] = RegClientCookie("ows_settings", "", CookieAccess_Private);
-
+	for(int i = 0; i < MAX_SAVECOOKIES; i++)
+	{
+		char cookie_name[32];
+		Format(cookie_name, sizeof(cookie_name), "outerwall_save_%i", i);
+		g_OuterWallSaveCookie[i] = RegClientCookie(cookie_name, "", CookieAccess_Protected);
+	}
+	
 	PrintToServer("Loaded outerwall_savesync...");
 }
 
@@ -93,19 +74,19 @@ void SavePlayerProfileToCookies(int iClient)
 		return;
 
 	File SaveFile = OpenFile(SaveLoc, "r", false);
-	char SaveFileString[512];
+	char SaveFileString[MAX_SAVESIZE];
 
 	if(ReadFileString(SaveFile, SaveFileString, sizeof(SaveFileString), -1) == -1)
 		return;
 
 	delete SaveFile;
 
-	char SaveFileStringExplosion[PlayerDataTypes_MAX][64];
-	ExplodeString(SaveFileString, ";", SaveFileStringExplosion, sizeof(SaveFileStringExplosion), 64);
+	char SaveFileStringExplosion[MAX_SAVECOOKIES][MAX_COOKIESIZE];
+	ExplodeString(SaveFileString, ";", SaveFileStringExplosion, sizeof(SaveFileStringExplosion), MAX_COOKIESIZE);
 
 	for(int i = 0; i < sizeof(SaveFileStringExplosion); i++)
 	{
-		SetClientCookie(iClient, g_OuterWallSavePlayerDataTypes[i], SaveFileStringExplosion[i]);
+		SetClientCookie(iClient, g_OuterWallSaveCookie[i], SaveFileStringExplosion[i]);
 	}
 }
 
@@ -114,14 +95,14 @@ public void OnClientCookiesCached(int iClient)
 	if(!g_bOuterWallSaveSyncEnabled)
 		return;
 
-	char cookiebuffer[128];
-	char ConstructedSaveBuffer[512];
-	for(int i = 0; i < sizeof(g_OuterWallSavePlayerDataTypes); i++)
+	char cookiebuffer[MAX_COOKIESIZE];
+	char ConstructedSaveBuffer[MAX_SAVESIZE];
+	for(int i = 0; i < sizeof(g_OuterWallSaveCookie); i++)
 	{
-		GetClientCookie(iClient, g_OuterWallSavePlayerDataTypes[i], cookiebuffer, sizeof(cookiebuffer));
+		GetClientCookie(iClient, g_OuterWallSaveCookie[i], cookiebuffer, sizeof(cookiebuffer));
 
 		if(cookiebuffer[0] == '\0')
-			return;
+			continue;
 
 		Format(ConstructedSaveBuffer, sizeof(ConstructedSaveBuffer), "%s%s;", ConstructedSaveBuffer, cookiebuffer);
 	}
