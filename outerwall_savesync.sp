@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <clientprefs>
+#include <vscript>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -15,12 +16,14 @@ bool g_bOuterWallSaveSyncEnabled = false;
 
 Handle g_OuterWallSaveCookie[MAX_SAVECOOKIES];
 
+VScriptFunction g_SaveProfileFunction;
+
 public Plugin myinfo =
 {
 	name = "Outer Wall Save Sync",
 	author = "Horiuchi",
 	description = "A companion plugin for pf_outerwall that saves and loads save files from cookies",
-	version = "1.2",
+	version = "1.3",
 };
 
 public void OnPluginStart()
@@ -28,6 +31,7 @@ public void OnPluginStart()
 	char mapName[64];
 	GetCurrentMap(mapName, sizeof(mapName));
 	CheckIfPluginShouldBeActive(mapName);
+	HookEvent("player_spawn", SetVScriptPluginEnabled, EventHookMode_Pre);
 
 	for(int i = 0; i < MAX_SAVECOOKIES; i++)
 	{
@@ -39,6 +43,12 @@ public void OnPluginStart()
 	PrintToServer("Loaded outerwall_savesync...");
 }
 
+public void SetVScriptPluginEnabled(Event event, const char[] name, bool dontBroadcast)
+{
+	if(g_bOuterWallSaveSyncEnabled)
+		ServerCommand("script PluginSaveActive = true");
+}
+
 public void OnMapInit(const char[] mapName)
 {
 	CheckIfPluginShouldBeActive(mapName);
@@ -48,6 +58,33 @@ void CheckIfPluginShouldBeActive(const char[] mapName)
 {
 	g_bOuterWallSaveSyncEnabled = StrContains(mapName, "pf_outerwall") != -1 ? true : false;
 	PrintToServer(g_bOuterWallSaveSyncEnabled ? "Outerwall_savesync is now ENABLED." : "Outerwall_savesync is now DISABLED.");
+}
+
+public MRESReturn Detour_PluginSavePlayerProfile(DHookReturn hReturn, DHookParam hParam)
+{
+	SavePlayerProfileToCookies(hParam.Get(1));
+	return MRES_Ignored;
+}
+
+public void OnMapStart()
+{
+	if(!g_bOuterWallSaveSyncEnabled)
+		return;
+
+	g_SaveProfileFunction = VScript_GetGlobalFunction("PluginSavePlayerProfile");
+	if(!g_SaveProfileFunction)
+	{
+		g_SaveProfileFunction = VScript_CreateFunction();
+		g_SaveProfileFunction.SetScriptName("PluginSavePlayerProfile");
+		g_SaveProfileFunction.SetParam(1, FIELD_INTEGER);
+		g_SaveProfileFunction.Return = FIELD_FLOAT;
+		g_SaveProfileFunction.SetFunctionEmpty();
+	}
+
+	if(!VScript_GetGlobalFunction("PluginSavePlayerProfile"))
+		g_SaveProfileFunction.Register();
+
+	g_SaveProfileFunction.CreateDetour().Enable(Hook_Post, Detour_PluginSavePlayerProfile);
 }
 
 void GetSaveLocation(int iClient, char[] ReturnChar, int ReturnCharLength)
